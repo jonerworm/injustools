@@ -1,0 +1,138 @@
+#!/bin/bash
+#
+# bfsmd        This starts and stops bfsmd.
+#
+# chkconfig: 345 56 50
+# description: bfsmd i BF1942 dedicated server manager. \
+#	       Listen on port 14667 for BFRM clients.
+#
+# processname: /usr/local/games/bf1942/bfsmd
+# config: /etc/sysconfig/network
+# config: /usr/local/games/bf1942/bfsmd/bfsmd.conf
+# pidfile: /var/run/bfsmd.pid
+
+PATH=/sbin:/bin:/usr/bin:/usr/sbin
+
+# Source function library.
+. /etc/init.d/functions
+
+BFSMD_ROOT='/usr/local/games/bf1942'
+BFSMD_PROG="${BFSMD_ROOT}/bf1942/bfsmd"
+BFSMD_GID=`stat --format='%g' "$BFSMD_PROG"`
+BFSMD_USER=`stat --format='%U' "$BFSMD_PROG"`
+BFSMD_PID="/var/run/bfsmd.pid"
+
+IFSOLD="$IFS"
+IFS=":$IFS"
+while read PWDUSER X PWDUID PWDGID X
+do
+	if [ "$PWDGID" = "$BFSMD_GID" ]; then
+		BFSMD_USER="$PWDUSER"
+		break
+	fi
+done </etc/passwd
+IFS="$IFSOLD"
+
+# Get config.
+test -f /etc/sysconfig/network && . /etc/sysconfig/network
+
+# More config
+
+test -f /etc/sysconfig/bfsmd && . /etc/sysconfig/bfsmd
+
+# Check that we are root ... so non-root users stop here
+[ `id -u` = 0 ] || exit 1
+
+# Check that networking is up.
+[ "${NETWORKING}" = "yes" ] || exit 0
+
+[ -f "${BFSMD_PROG}" ] || exit 1
+
+RETVAL=0
+
+prog=`basename "$BFSMD_PROG"`
+
+start(){
+    echo -n $"Starting $prog: "
+
+    # [ -r "$BFSMD_ROOT/../jail.sh" ] && ( cd "${BFSMD_ROOT}"; /bin/sh -c "${BFSMD_ROOT}/../jail.sh \"${BFSMD_ROOT}\"" >/dev/null )
+# Localization for bfsmd is controlled in /etc/synconfig/bfsmd
+    if [ -z "$BFSMD_LANG" -o "$BFSMD_LANG" = "none" -o "$BFSMD_LANG" = "NONE" ]; then
+        unset LANG LC_TIME LC_ALL LC_MESSAGES LC_NUMERIC LC_MONETARY LC_COLLATE
+    else
+        LANG="$BFSMD_LANG"
+        LC_TIME="$BFSMD_LANG"
+        LC_ALL="$BFSMD_LANG"
+        LC_MESSAGES="$BFSMD_LANG"
+        LC_NUMERIC="$BFSMD_LANG"
+        LC_MONETARY="$BFSMD_LANG"
+        LC_COLLATE="$BFSMD_LANG"
+        export LANG LC_TIME LC_ALL LC_MESSAGES LC_NUMERIC LC_MONETARY LC_COLLATE
+    fi
+    unset HOME MAIL USER USERNAME
+    #daemon --pidfile="${BFSMD_ROOT}" /usr/sbin/chroot "$BFSMD_PROG" "$EXTRAOPTIONS" -pid "${BFSMD_ROOT}"
+    #/usr/sbin/chroot "${BFSMD_ROOT}" "${BFSMD_PROG}" $EXTRAOPTIONS && success $"$prog startup" || failure $"$prog startup"
+    (cd "${BFSMD_ROOT}/bf1942"; "${BFSMD_PROG}" $EXTRAOPTIONS) && success $"$prog startup" || failure $"$prog startup"
+
+
+    RETVAL=$?
+    echo
+    touch /var/lock/subsys/bfsmd
+    return $RETVAL
+}
+
+stop(){
+    echo -n $"Stopping $prog: "
+    killproc -p "${BFSMD_PID}" "$BFSMD_PROG"
+    RETVAL=$?
+    echo
+    rm -f /var/lock/subsys/bfsmd
+    return $RETVAL
+
+}
+
+reload(){
+    echo -n $"Reloading configuration: "	
+    killproc "$BFSMD_PROG" -HUP
+    RETVAL=$?
+    echo
+    return $RETVAL
+}
+
+restart(){
+    stop
+    start
+}
+
+condrestart(){
+    [ -e /var/lock/subsys/bfsmd ] && restart
+    return 0
+}
+
+
+# See how we were called.
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    status)
+	status "$BFSMD_PROG"
+	;;
+    restart)
+	restart
+	;;
+    reload)
+	reload
+	;;
+    condrestart)
+	condrestart
+	;;
+    *)
+	echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
+	RETVAL=1
+esac
+
+exit $RETVAL

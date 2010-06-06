@@ -1,0 +1,22 @@
+EXTRAOPTIONS="-daemon -pid /var/run/bfsmd.pid -path /usr/local/games/bf1942/bf1942 -restart -adminlog -start -stop -exit -priority -1 -ip 127.0.0.1"
+#        -path <path>    is the /path/to/server/directory (no trailing slash)
+#        -ip <ip>        sets the server and bfsmd TCP/IP address (cannot be 0.0.0.0)
+#        -port <port>    sets the TCP port address of the bfsmd listen server (default 14667)
+#        -pid <file>     creates /path/to/pid/filename containing the bfsmd instance pid
+#        -daemon         daemonizes the bfsmd process
+#        -start          starts the server when bfsmd starts
+#        -stop           stops the server when bfsmd starts
+#        -restart        restarts the server process automatically after a crash
+#        -priority <#>   will renice the server to the given priority
+#        -syslog <#>     logs to specified syslog local facility 0-7 instead of bfsmd.log
+#        -reuseaddr      will bind bfsmd listen socket when already in use (use with caution!)
+#        -exit           stops the server when bfsmd exits
+#        -quit           terminates bfsmd when the server process terminates unexpectedly
+#        -kill           terminates the instance of bfsmd referenced by the pid file given with -pid
+#        -adminlog       logs all admin kick/ban actions to adminlog.csv
+#        -noadmin        sends admin messages as gray chat messages instead of yellow server messages
+#        -nodelay        kicks/bans players without a delay
+#        -license        displays software license agreement
+#        [+server args]  will be passed to the server process e.g. +game BF1942
+#        [@server cmds]  will be appended to serversettings.con e.g. @game.gameSpyPort 2300
+
