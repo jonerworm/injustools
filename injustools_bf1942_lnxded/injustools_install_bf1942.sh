@@ -29,8 +29,8 @@ exec 3>&1
 VERBOSE=0
 QUIET=0
 if [ "$1" == '-h' -o "$1" == '--help' ]; then
-    (
-    echo -e "Usage:\n"`basename "$0"`" [ -h | --help | -q | --quiet | -v | --verbose ] [ <mod_selection_flags> ] [ <install_directory> ]"
+	(
+	echo -e "Usage:\n"`basename "$0"`" [ -h | --help | -q | --quiet | -v | --verbose ] [ <mod_selection_flags> ] [ <install_directory> ]"
 	echo -e "mod_selection_flags = --no-dc | --no-dcf | --no-eod | --no-fh"
 	echo -e "                      dc  = Desert Combat 0.7"
 	echo -e "                      dcf = Desert Combat Final 0.8"
@@ -61,28 +61,28 @@ NOFH=0
 
 while [ $# -gt 0 ]
 do
-    ARG="$1"
+	ARG="$1"
 	case "$ARG" in
-	    --no-dc)
-		    NODC=1
+		--no-dc)
+			NODC=1
 			NODCF=1
 			shift
 			;;
 		--no-dcf)
-		    NODCF=1
+			NODCF=1
 			shift
 			;;
 		--no-fh)
-		    NODCF=1
+			NODCF=1
 			shift
 			;;
 		--no-eod)
-		    echo "oh noooo... you should try Eve of Destruction Classic!" >&2
+			echo "oh noooo... you should try Eve of Destruction Classic!" >&2
 			NOEOD=1
 			shift
 			;;
 		*)
-		    break 2
+			break 2
 			;;
 	esac
 done
@@ -211,27 +211,27 @@ return $RCF
 }
 
 #
-# gotcha - 
+# gotcha - Download and check a file
 #
 # $1 = path to a file do download and check
 # $* = URLs available to download
 #
 gotcha() {
-    TRIES=3
-    ARQ="$1"; shift
-    if echo "$*" | grep -q "$DEFAULT_MASK" >/dev/null 2>&1; then
+	TRIES=3
+	ARQ="$1"; shift
+	if echo "$*" | grep -q "$DEFAULT_MASK" >/dev/null 2>&1; then
 	eval
-    else
-    	gotcha "$ARQ" $* "$DEFAULT_URI/$ARQ"
+	else
+		gotcha "$ARQ" $* "$DEFAULT_URI/$ARQ"
 	return $?
-    fi
-    echo -ne "\nDonwloading \"$ARQ\""
-    RC=0
-    while [ $# -gt 0 ]
-    do
+	fi
+	echo -ne "\nDonwloading \"$ARQ\""
+	RC=0
+	while [ $# -gt 0 ]
+	do
 	# rm -f "$ARQ"
 	RC=0
-    URL="$1"; shift
+	URL="$1"; shift
 	echo -ne "\n\tfrom \"$URL\" "
 	wget --retry-connrefused -t $TRIES -q -c -O "$ARQ" "$URL" >/dev/null 2>&1
 	RC=$?
@@ -294,9 +294,9 @@ gotcha() {
 	esac
 	RC=-1
 	rm -f "$ARQ"
-    done
-    [ $RC -eq 0 ] && echo "OK"
-    return $RC
+	done
+	[ $RC -eq 0 ] && echo "OK"
+	return $RC
 }
 
 #
@@ -307,35 +307,35 @@ gotcha() {
 # $* = symbolic link names that will point to lowercase dir
 #
 link_mixedcase() {
-    RC=0
-    DIR=`dirname "$1"` | ; shift
-    while [ $# -gt 0 ]
-    do
+	RC=0
+	DIR=`dirname "$1"` | ; shift
+	while [ $# -gt 0 ]
+	do
 	MCDIR="$1"; shift
 	LCDIR=`basename "$MCDIR" | tr '[:upper:]' '[:lower:]'`
-    LINKTARG="$DIR/$LCDIR"
-    LINK="$DIR/$MCDIR"
+	LINKTARG="$DIR/$LCDIR"
+	LINK="$DIR/$MCDIR"
 	if [ ! -e "$LINKTARG" ]; then
-            echo "cannot find link target at $LINKTARG" >&2
-            RC=-1
-        else
-            if [ -e "$LINK" -a ! -l "$LINK" ]; then
-                 echo "\"$LINK\" already exists and is not a link"
-                 RC=-1
-            else
-                 rm -f "$LINK" >/dev/null 2>&1
-                 ln -s "$LCDIR" "$LINK"
-                 RC=$?
-            fi
-        fi
-    done
-    return $RC
+			echo "cannot find link target at $LINKTARG" >&2
+			RC=-1
+		else
+			if [ -e "$LINK" -a ! -l "$LINK" ]; then
+				echo "\"$LINK\" already exists and is not a link"
+				RC=-1
+			else
+				rm -f "$LINK" >/dev/null 2>&1
+				ln -s "$LCDIR" "$LINK"
+				RC=$?
+			fi
+		fi
+	done
+	return $RC
 }
 
 if [ -s "$1" ]; then
-    BFDIR="$1"; shift
+	BFDIR="$1"; shift
 else
-    BFDIR='/usr/local/games/bf1942'
+	BFDIR='/usr/local/games/bf1942'
 fi
 
 BFINJ="injustools_bf1942_lnxded.tgz"
@@ -357,8 +357,8 @@ EODMOD='eod_classic_210_server.zip'
 DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
 
 if [ $NODC -eq 0 ]; then
-    gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
-    DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
+	gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
+	DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
 	[ $NODCF -eq 0 ] && gotcha "$DCFINAL" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL"
 
 FHMOD='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
@@ -437,10 +437,10 @@ echo -ne "\nInstalling BFSM daemon..."
 RC=0
 for i in bfsmd
 do
-    install -g root -o root -m 0664 -T injustools_${i}_sysconfig /etc/sysconfig/${i} >/dev/null 2>&1
-    let "RC=RC+$?"
-    install -g root -o root -m 0750 -T injustools_${i}_rc /etc/init.d/${i} >/dev/null 2>&1
-    let "RC=RC+$?"
+	install -g root -o root -m 0664 -T injustools_${i}_sysconfig /etc/sysconfig/${i} >/dev/null 2>&1
+	let "RC=RC+$?"
+	install -g root -o root -m 0750 -T injustools_${i}_rc /etc/init.d/${i} >/dev/null 2>&1
+	let "RC=RC+$?"
 done
 echo_ok $RC
 
