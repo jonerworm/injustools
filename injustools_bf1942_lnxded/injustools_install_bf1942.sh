@@ -1,4 +1,26 @@
 #!/bin/sh
+#
+# This script installs BF1942 GNU/Linux dedicated server and
+# BF1942 Server Manager (BFSMD), downloading, checking,
+# installing, patching, modding.
+#
+# $1 = optional directory where to install (default = /usr/local/games/bf1942)
+#
+# Copyright (C) 2010, Joner Cyrre Worm
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 DEFAULT_URI='http://99.198.122.92/~injustos/download'
 DEFAULT_MASK="~injustos"
@@ -6,12 +28,25 @@ exec 4>&2
 exec 3>&1
 VERBOSE=0
 QUIET=0
-if [ "$1" == '-v' ]; then
+if [ "$1" == '-h' -o "$1" == '--help' ]; then
+    (
+    echo -e "Usage:\n"`basename "$0"`" [ -h | --help | -q | --quiet | -v | --verbose ] [ <mod_selection_flags> ] [ <install_directory> ]"
+	echo -e "mod_selection_flags = --no-dc | --no-dcf | --no-eod | --no-fh"
+	echo -e "                      dc  = Desert Combat 0.7"
+	echo -e "                      dcf = Desert Combat Final 0.8"
+	echo -e "                      eod = Eve of Destruction Classic"
+	echo -e "                      fh  = Forgotten Hope"
+	echo -e "\nCopyright (C) 2010, Joner Cyrre Worm\nThis program is licensed under the GNU General Public License\nas published by the Free Software Foundation. See COPYING file."
+	) >&2
+	exit
+fi
+
+if [ "$1" == '-v' -o "$1" == '--verbose' ]; then
 	shift
 	VERBOSE=1
 	exec 2>&4
 	exec 1>&3
-elif [ "$1" == '-q' ]; then
+elif [ "$1" == '-q' -o "$1" == '--quiet' ]; then
 	shift
 	QUIET=1
 	exec 4>/dev/null
@@ -19,9 +54,47 @@ elif [ "$1" == '-q' ]; then
 	exec 2>/dev/null
 	exec 1>/dev/null
 fi
+NODC=0
+NODCF=0
+NOEOD=0
+NOFH=0
+
+while [ $# -gt 0 ]
+do
+    ARG="$1"
+	case "$ARG" in
+	    --no-dc)
+		    NODC=1
+			NODCF=1
+			shift
+			;;
+		--no-dcf)
+		    NODCF=1
+			shift
+			;;
+		--no-fh)
+		    NODCF=1
+			shift
+			;;
+		--no-eod)
+		    echo "oh noooo... you should try Eve of Destruction Classic!" >&2
+			NOEOD=1
+			shift
+			;;
+		*)
+		    break 2
+			;;
+	esac
+done
 
 export DEFAULT_URI DEFAULT_MASK VERBOSE QUIET
 
+#
+# echo_ok - Echoes the final string for an action, according to previous
+#           return code given as a parameter
+#
+# $1 = previous return code
+#
 echo_ok() {
 
 RCOK=$1; shift
@@ -29,6 +102,12 @@ RCOK=$1; shift
 
 }
 
+#
+# check_md5sum - For a given file checks against an existing MD5 correspondent
+#                check file (if exists), or create an MD5 check file (if doesn't
+#                already exists).
+# $1 = path to a file to check, or generate MD5 check file.
+#
 check_md5sum() {
 
 	MD5_FILE="$1"; shift
@@ -46,6 +125,16 @@ check_md5sum() {
 
 }
 
+#
+# check_file - Checks the integrity of archive files either by their
+#              magic-numbers' mime - file (8) -, file extension, MD5 check,
+#              archive test (when supported by CLI command), or null extraction.
+#
+# $1 = file extension
+# $2 = file type (mime)
+# $3 = file subtype (embed mime)
+# $4 = path to a file to check
+#
 check_file() {
 echo -ne "\n\t\tChecking integrity..."
 FILE_EXT="$1"; shift
@@ -121,6 +210,12 @@ fi
 return $RCF
 }
 
+#
+# gotcha - 
+#
+# $1 = path to a file do download and check
+# $* = URLs available to download
+#
 gotcha() {
     TRIES=3
     ARQ="$1"; shift
@@ -136,7 +231,7 @@ gotcha() {
     do
 	# rm -f "$ARQ"
 	RC=0
-        URL="$1"; shift
+    URL="$1"; shift
 	echo -ne "\n\tfrom \"$URL\" "
 	wget --retry-connrefused -t $TRIES -q -c -O "$ARQ" "$URL" >/dev/null 2>&1
 	RC=$?
@@ -204,15 +299,22 @@ gotcha() {
     return $RC
 }
 
+#
+# link_mixedcase - create various mixedcase symbolic links to
+#                  one all-lowercase directory.
+#
+# $1 = directory where symbolic links will be created
+# $* = symbolic link names that will point to lowercase dir
+#
 link_mixedcase() {
     RC=0
     DIR=`dirname "$1"` | ; shift
     while [ $# -gt 0 ]
     do
 	MCDIR="$1"; shift
-	LCDIR=`echo "$MCDIR" | tr '[:upper:]' '[:lower:]'`
-        LINKTARG="$DIR/$LCDIR"
-        LINK="$DIR/$MCDIR"
+	LCDIR=`basename "$MCDIR" | tr '[:upper:]' '[:lower:]'`
+    LINKTARG="$DIR/$LCDIR"
+    LINK="$DIR/$MCDIR"
 	if [ ! -e "$LINKTARG" ]; then
             echo "cannot find link target at $LINKTARG" >&2
             RC=-1
@@ -250,19 +352,20 @@ BFSRVPATCH='Battlefield_1942_1.61_Patch_Dedicated_Server_Linux.tar.gz'
 gotcha "$BFSRVPATCH" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSRVPATCH}"
 
 EODMOD='eod_classic_210_server.zip'
-gotcha "${EODMOD}" "http://www.lottimax.de/eodmod/releases/${EODMOD}"
+[ $NOEOD -eq 0 ] && gotcha "${EODMOD}" "http://www.lottimax.de/eodmod/releases/${EODMOD}"
 
-#DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
-#gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
+DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
 
-#DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
-#gotcha "$DCFINAL" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL"
+if [ $NODC -eq 0 ]; then
+    gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
+    DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
+	[ $NODCF -eq 0 ] && gotcha "$DCFINAL" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL"
 
-#FHMOD='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
-#gotcha "$FHMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMOD"
+FHMOD='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
+[ $NOFH -eq 0 ] &&  gotcha "$FHMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMOD"
 
-#BFSM='BFServerManager201.tgz'
-#gotcha "${BFSM}" "http://www.bf-games.net/downloadnow/204/19346"
+BFSM='BFServerManager201.tgz'
+gotcha "${BFSM}" "http://www.bf-games.net/downloadnow/204/19346"
 
 echo -ne "\nInstalling BF1942 server..."
 mkdir -p "${BFDIR}"
@@ -293,22 +396,30 @@ echo_ok $RC
 link_mixedcase "${BFDIR}/bf1942" Mods MODS
 link_mixedcase "${BFDIR}/bf1942/mods" BF1942
 
-if [ -r "$EODMOD" ]; then
-    echo -ne "\nExtracting Eve of Destruction mod..."
-    unzip -q -o "${EODMOD}" -d "$BFDIR/bf1942/mods" >/dev/null 2>&1
-    RC=$?
-    if [ $RC -ne 0 ]; then
-        echo_ok $RC)
-    else
-        link_mixedcase "${BFDIR}/bf1942/mods" Eod EoD EOD
-    fi
+if [ $NOEOD -eq 0 ]; then
+	if [ -r "$EODMOD" ]; then
+		echo -ne "\nExtracting Eve of Destruction mod..."
+		unzip -q -o "${EODMOD}" -d "$BFDIR/bf1942/mods" >/dev/null 2>&1
+		RC=$?
+		if [ $RC -ne 0 ]; then
+			echo_ok $RC)
+		else
+			link_mixedcase "${BFDIR}/bf1942/mods" Eod EoD EOD
+		fi
+	fi
 fi
 
-[ -r "$DCMOD" ] && (echo -ne "\nInstalling DesertCombat mod..."; sh "./$DCMOD" --nox11 --noexec --target "$BFDIR/bf1942" >/dev/null 2>&1; RC=$?; echo_ok $RC)
+if [ $NODC -eq 0 ]; then
+	if [ -r "$DCMOD" ]; then
+		echo -ne "\nInstalling DesertCombat mod..."
+		sh "./$DCMOD" --nox11 --noexec --target "$BFDIR/bf1942" >/dev/null 2>&1
+		RC=$?
+		echo_ok $RC
+		[ $NODCF -eq 0 -a $RC -eq 0 ] && [ -r "$DCFINAL" ] && (echo -ne "\nInstalling DC Final mod..."; sh "./$DCFINAL" --nox11 --noexec --target "$BFDIR/bf1942/mods" >/dev/null 2>&1; RC=$?; echo_ok $RC)
+	fi
+fi
 
-[ -r "$DCFINAL" ] && (echo -ne "\nInstalling DC Final mod..."; sh "./$DCFINAL" --nox11 --noexec --target "$BFDIR/bf1942/mods" >/dev/null 2>&1; RC=$?; echo_ok $RC)
-
-[ -r "$FHMOD" ] && (echo -ne "\nExtracting Forgotten Hope mod..."; unzip -q -o "${FHMOD}" -d "$BFDIR/bf1942" >/dev/null 2>&1; RC=$?; echo_ok $RC)
+[ $NOFH -eq 0 ] && [ -r "$FHMOD" ] && (echo -ne "\nExtracting Forgotten Hope mod..."; unzip -q -o "${FHMOD}" -d "$BFDIR/bf1942" >/dev/null 2>&1; RC=$?; echo_ok $RC)
 
 mkdir -p "$BFDIR/bfsmd"
 echo -ne "\nExtracting BFServerManager..."
