@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This script installs BF1942 GNU/Linux dedicated server and
 # BF1942 Server Manager (BFSMD), downloading, checking,
@@ -22,8 +22,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-DEFAULT_URI='http://99.198.122.92/~injustos/download'
-DEFAULT_MASK="~injustos"
+DEFAULT_URI='http://injustools.googlecode.com/files'
+DEFAULT_MASK="injustools"
 exec 4>&2
 exec 3>&1
 VERBOSE=0
@@ -32,6 +32,7 @@ if [ "$1" == '-h' -o "$1" == '--help' ]; then
 	(
 	echo -e "Usage:\n"`basename "$0"`" [ -h | --help | -q | --quiet | -v | --verbose ] [ <mod_selection_flags> ] [ <install_directory> ]"
 	echo -e "mod_selection_flags = --no-dc | --no-dcf | --no-eod | --no-fh"
+	echo -e "                      bg  = BattleGroup42"
 	echo -e "                      dc  = Desert Combat 0.7"
 	echo -e "                      dcf = Desert Combat Final 0.8"
 	echo -e "                      eod = Eve of Destruction Classic"
@@ -54,6 +55,7 @@ elif [ "$1" == '-q' -o "$1" == '--quiet' ]; then
 	exec 2>/dev/null
 	exec 1>/dev/null
 fi
+NOBG=0
 NODC=0
 NODCF=0
 NOEOD=0
@@ -63,6 +65,10 @@ while [ $# -gt 0 ]
 do
 	ARG="$1"
 	case "$ARG" in
+		--no-bg)
+			NOBG=1
+			shift
+			;;
 		--no-dc)
 			NODC=1
 			NODCF=1
@@ -87,7 +93,18 @@ do
 	esac
 done
 
-export DEFAULT_URI DEFAULT_MASK VERBOSE QUIET
+# Determine 7Zip archiver command
+#
+CMD7ZR='/usr/bin/7zr'
+[ -x "$CMD7ZR" ] || CMD7ZR='/bin/false'
+
+# Determine Unrar chiver command
+#
+CMDUNRAR='/usr/bin/unrar'
+[ -x "$CMDUNRAR" ] || CMDUNRAR='/usr/bin/unrar-free'
+[ -x "$CMDUNRAR" ] || CMDUNRAR='/bin/false'
+
+export DEFAULT_URI DEFAULT_MASK VERBOSE QUIET CMD7ZR CMDUNRAR
 
 #
 # echo_ok - Echoes the final string for an action, according to previous
@@ -148,6 +165,8 @@ FILE_MIME['tar']='application/x-tar'
 FILE_MIME['tgz']='application/x-tar'
 FILE_MIME['bz2']='application/x-bzip2'
 FILE_MIME['gz']='application/x-gzip'
+FILE_MIME['7z']='application/octet-stream'
+FILE_MIME['rar']='application/octet-stream'
 FILE_MIME['zip']='application/x-zip'
 FILE_MIME['sh']='application/x-shellscript'
 FILE_MIME['bin']='application/x-executable'
@@ -182,6 +201,13 @@ else
 		'gz')
 			gunzip -q -t "$FILE" >/dev/null 2>&1
 			;;
+		'rar')
+                       
+			"$CMDUNRAR" l "$FILE" >/dev/null 2>&1
+			;;
+		'7z')
+			"$CMD7ZR" t -y -bd "$FILE" >/dev/null 2>&1
+			;;
 		'zip')
 			unzip -q -t "$FILE" >/dev/null 2>&1
 			;;
@@ -202,7 +228,7 @@ else
 		check_md5sum "$FILE"
 		RCF=$?
 	else
-		echo " file maybe is corrupted "
+		echo " file may be corrupted "
 	fi
 fi
 
@@ -252,6 +278,12 @@ gotcha() {
 			;;
 		*.gz)
 			check_file 'gz' "$TYPE" "$SUBTYPE" "$ARQ" && break
+			;;
+		*.7z)
+			check_file '7z' "$TYPE" "$SUBTYPE" "$ARQ" && break
+			;;
+		*.rar)
+			check_file 'rar' "$TYPE" "$SUBTYPE" "$ARQ" && break
 			;;
 		*.zip)
 			check_file 'zip' "$TYPE" "$SUBTYPE" "$ARQ" && break
@@ -332,41 +364,84 @@ link_mixedcase() {
 	return $RC
 }
 
+# Default BF1942 install dir
+#
 if [ -s "$1" ]; then
 	BFDIR="$1"; shift
 else
 	BFDIR='/usr/local/games/bf1942'
 fi
 
+# Get aditional INJusTools and MD5 checksum files
+#
 BFINJ="injustools_bf1942_lnxded.tgz"
 gotcha "${BFINJ}" "$DEFAULT_URI/$BFINJ"
 
+# Extract INJusTools
 echo -ne "\nExtracting ${BFINJ}..."
 tar xzf "$BFINJ" --exclude "*"`basename "$0"` >/dev/null 2>&1
 echo_ok $?
 
+# Get Full Linux dedicated server
+#
 BFSERVER='Battlefield_1942_1.6_Dedicated_Server_Linux.run'
 gotcha "${BFSERVER}" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSERVER}" "$DEFAULT_URI/bf1942_linux-dedicado-1.6-rc2.run"
 
+# Get Linux dedicated server 1.61 patch
 BFSRVPATCH='Battlefield_1942_1.61_Patch_Dedicated_Server_Linux.tar.gz'
 gotcha "$BFSRVPATCH" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSRVPATCH}"
 
-EODMOD='eod_classic_210_server.zip'
+# Get EoD mod
+#
+EODMOD='eod_classic_220_server.zip'
 [ $NOEOD -eq 0 ] && gotcha "${EODMOD}" "http://www.lottimax.de/eodmod/releases/${EODMOD}"
 
+# Get Desert Combat mod
+#
 DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
 
 if [ $NODC -eq 0 ]; then
 	gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
+#
+#       Get Desert Combat DC_Final mini-mod
+#
 	DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
 	[ $NODCF -eq 0 ] && gotcha "$DCFINAL" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL"
 
-FHMOD='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
-[ $NOFH -eq 0 ] &&  gotcha "$FHMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMOD"
+# Get Forgotten Hope mod
+#
+FHMODUC='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
+FMMOD='forgotten_hope_v0.7_dedicated_server.zip'
+[ $NOFH -eq 0 ] &&  gotcha "$FHMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMODUC"
+# "http://www.warumdarum.de//index.php?option=com_remository&Itemid=28&func=download&id=27&chk=451183137aa0bd47b5307db7c18f31d6"
+# "http://www.filefront.com/thankyou.php?f=4292687"
 
+# Get Battleggroup42 mod
+#
+BGMODUC='BattleGroup42_1.6_Full_Dedicated_Server_Windows.rar'
+BGMOD='BG42_Full_Server_1_6.rar'
+
+if [ $NOBG -eq 0 ]; then
+	if gotcha "${BGMOD}" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Battlegroup42/Servidor_Dedicado/&file=${BGMODUC}"; then
+# "http://www.battlegroup42.de/${BGMOD}"
+# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=44&noJpC"
+		EAPACK='bf1942_match_mappack_v1.0.zip'
+                gotcha "$EAPACK" "${DEFAULT_URI}/${EAPACK}"
+# "http://www.fileplanet.com/dl.aspx?/planetbattlefield/${EAPACK}"
+# "http://battlefield2.filefront.com/file/BF1942_Match_Mappack_V10;37864"
+# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=3&noJpC"
+# "http://games.on.net/file/1265/BF1942_Tournament_Map_Pack"
+	fi
+fi
+	
+
+# Get BFServerManager remote daemon
+#
 BFSM='BFServerManager201.tgz'
 gotcha "${BFSM}" "http://www.bf-games.net/downloadnow/204/19346"
 
+# Install BF1942 Linux dedicated server
+#
 echo -ne "\nInstalling BF1942 server..."
 mkdir -p "${BFDIR}"
 
@@ -388,6 +463,8 @@ _expect_EoF_
 RC=$?
 echo_ok $RC
 
+# Install BF1942 Linux dedicated server 1.61 patch
+#
 echo -ne "\nExtracting BF1942 server patch..."
 tar xzf "${BFSRVPATCH}" -C "$BFDIR" >/dev/null 2>&1
 RC=$?
@@ -396,6 +473,8 @@ echo_ok $RC
 link_mixedcase "${BFDIR}/bf1942" Mods MODS
 link_mixedcase "${BFDIR}/bf1942/mods" BF1942
 
+# Install EoD mod
+#
 if [ $NOEOD -eq 0 ]; then
 	if [ -r "$EODMOD" ]; then
 		echo -ne "\nExtracting Eve of Destruction mod..."
@@ -409,23 +488,56 @@ if [ $NOEOD -eq 0 ]; then
 	fi
 fi
 
+# Install DesertCombat mod
 if [ $NODC -eq 0 ]; then
 	if [ -r "$DCMOD" ]; then
 		echo -ne "\nInstalling DesertCombat mod..."
 		sh "./$DCMOD" --nox11 --noexec --target "$BFDIR/bf1942" >/dev/null 2>&1
 		RC=$?
 		echo_ok $RC
+#
+#		Install DC_Final mini-mod
+#
 		[ $NODCF -eq 0 -a $RC -eq 0 ] && [ -r "$DCFINAL" ] && (echo -ne "\nInstalling DC Final mod..."; sh "./$DCFINAL" --nox11 --noexec --target "$BFDIR/bf1942/mods" >/dev/null 2>&1; RC=$?; echo_ok $RC)
 	fi
 fi
 
+# Install Forgotten Hope mod
+#
 [ $NOFH -eq 0 ] && [ -r "$FHMOD" ] && (echo -ne "\nExtracting Forgotten Hope mod..."; unzip -q -o "${FHMOD}" -d "$BFDIR/bf1942" >/dev/null 2>&1; RC=$?; echo_ok $RC)
 
+
+# Install BattleGroup42 mod
+if [ $NOBG -eq 0 ]; then
+	if [ -r "$BGMOD" ]; then
+		echo -ne "\nExtracting BattleGroup mod..."
+                "$CMDUNRAR" "${BGMOD}" "$BFDIR/bf1942/mods/bg42" >/dev/null 2>&1
+		RC=$?
+		if [ $RC -ne 0 ]; then
+			echo_ok $RC)
+		else
+#
+#			Install EA Community match mappack
+#
+			if [ -r "${EAPACK}" ]; then
+				unzip "${BGMOD}" "$BFDIR/bf1942" >/dev/null 2>&1
+				if [ $RC -ne 0 ]; then
+					echo_ok $RC)
+				fi
+			fi
+		fi
+	fi
+fi
+
+# Install BFServerManager
+#
 mkdir -p "$BFDIR/bfsmd"
 echo -ne "\nExtracting BFServerManager..."
 tar xzf "$BFSM" -C "$BFDIR/bfsmd" >/dev/null 2>&1
 echo_ok $?
 
+# Adjust files/directories permissions
+#
 [ -r "$BFINJ" ] || echo "$0: $BFINJ not found" || exit -1
 echo -ne "\nCorrecting permissions..."
 sh ./injustools_bf1942_perms.sh "$BFDIR"
@@ -433,6 +545,8 @@ sh ./injustools_bfsmd_perms.sh "$BFDIR/bfsmd"
 #   sh ./injustools_bf1942_jail.sh "$BFDIR"
 echo_ok $?
 
+# Install BFServerManager daemon and configs
+#
 echo -ne "\nInstalling BFSM daemon..."
 RC=0
 for i in bfsmd
