@@ -22,8 +22,61 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-DEFAULT_URI='http://injustools.googlecode.com/files'
-DEFAULT_MASK="injustools"
+# INJusTools extra files and scritps at GoogleCode.com
+DEFAULT_URI="'http://injustools.googlecode.com/files'"
+DEFAULT_MASK='injustools'
+
+# INJusTools extra files and scritps for bf1942 & mods install
+BFINJ='injustools_bf1942_lnxded.tgz'
+
+# BF1942 Dedicated server full install v1.6
+BFSERVER='Battlefield_1942_1.6_Dedicated_Server_Linux.run'
+BFSERVER_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSERVER}'"
+
+# BF1942 Dedicated server patch v1.61
+BFSRVPATCH='Battlefield_1942_1.61_Patch_Dedicated_Server_Linux.tar.gz'
+BFSRVPATCH_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSRVPATCH}'"
+
+# Mod Eve of Destruction v2.20
+EODMOD='eod_classic_220_server.zip'
+EODMOD_URIS="'http://www.lottimax.de/eodmod/releases/${EODMOD}'"
+
+# Mod Desert Combat v0.7
+DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
+DCMOD_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD'"
+
+# Mini-mod Desert Combat Final v0.8
+DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
+DCFINAL_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL'"
+
+# Mod Forgotten Hope v0.7
+FHMODUC='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
+FHMOD='forgotten_hope_v0.7_dedicated_server.zip'
+FHMOD_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMODUC'"
+# "http://www.warumdarum.de//index.php?option=com_remository&Itemid=28&func=download&id=27&chk=451183137aa0bd47b5307db7c18f31d6"
+# "http://www.filefront.com/thankyou.php?f=4292687"
+
+
+# Mod BattleGroup42 v1.6
+BGMODUC='BattleGroup42_1.6_Full_Dedicated_Server_Windows.rar'
+BGMOD='BG42_Full_Server_1_6.rar'
+BGMOD_URIS="'http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Battlegroup42/Servidor_Dedicado/&file=${BGMODUC}'"
+# "http://www.battlegroup42.de/${BGMOD}"
+# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=44&noJpC"
+
+# Mappack EA Community match maps
+EAPACK='bf1942_match_mappack_v1.0.zip'		# repackaged from original installer
+EAPACK_URIS="'${DEFAULT_URI}/${EAPACK}'"
+# "http://www.fileplanet.com/dl.aspx?/planetbattlefield/${EAPACK}"
+# "http://battlefield2.filefront.com/file/BF1942_Match_Mappack_V10;37864"
+# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=3&noJpC"
+# "http://games.on.net/file/1265/BF1942_Tournament_Map_Pack"
+
+# Tool BlackBagOps' Battlefield Server Manager (daemon) v 2.01
+BFSM='BFServerManager201.tgz'
+BFSM_URIS="'http://www.bf-games.net/downloadnow/204/19346'"
+
+
 exec 4>&2
 exec 3>&1
 VERBOSE=0
@@ -31,10 +84,10 @@ QUIET=0
 if [ "$1" == '-h' -o "$1" == '--help' ]; then
 	(
 	echo -e "Usage:\n"`basename "$0"`" [ -h | --help | -q | --quiet | -v | --verbose ] [ <mod_selection_flags> ] [ <install_directory> ]"
-	echo -e "mod_selection_flags = --no-dc | --no-dcf | --no-eod | --no-fh"
+	echo -e "mod_selection_flags = --no-bg | --no-dc | --no-dcf | --no-eod | --no-fh"
 	echo -e "                      bg  = BattleGroup42"
-	echo -e "                      dc  = Desert Combat 0.7"
-	echo -e "                      dcf = Desert Combat Final 0.8"
+	echo -e "                      dc  = Desert Combat"
+	echo -e "                      dcf = Desert Combat Final"
 	echo -e "                      eod = Eve of Destruction Classic"
 	echo -e "                      fh  = Forgotten Hope"
 	echo -e "\nCopyright (C) 2010, Joner Cyrre Worm\nThis program is licensed under the GNU General Public License\nas published by the Free Software Foundation. See COPYING file."
@@ -92,6 +145,14 @@ do
 			;;
 	esac
 done
+
+# Default BF1942 install dir
+#
+if [ -s "$1" ]; then
+	BFDIR="$1"; shift
+else
+	BFDIR='/usr/local/games/bf1942'
+fi
 
 # Determine 7Zip archiver command
 #
@@ -364,18 +425,9 @@ link_mixedcase() {
 	return $RC
 }
 
-# Default BF1942 install dir
-#
-if [ -s "$1" ]; then
-	BFDIR="$1"; shift
-else
-	BFDIR='/usr/local/games/bf1942'
-fi
-
 # Get aditional INJusTools and MD5 checksum files
 #
-BFINJ="injustools_bf1942_lnxded.tgz"
-gotcha "${BFINJ}" "$DEFAULT_URI/$BFINJ"
+gotcha "${BFINJ}" $BFINJ_URIS
 
 # Extract INJusTools
 echo -ne "\nExtracting ${BFINJ}..."
@@ -384,61 +436,41 @@ echo_ok $?
 
 # Get Full Linux dedicated server
 #
-BFSERVER='Battlefield_1942_1.6_Dedicated_Server_Linux.run'
-gotcha "${BFSERVER}" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSERVER}" "$DEFAULT_URI/bf1942_linux-dedicado-1.6-rc2.run"
+gotcha "${BFSERVER}" $BFSERVER_URIS
 
 # Get Linux dedicated server 1.61 patch
-BFSRVPATCH='Battlefield_1942_1.61_Patch_Dedicated_Server_Linux.tar.gz'
-gotcha "$BFSRVPATCH" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Servidor_Dedicado/&file=${BFSRVPATCH}"
+gotcha "$BFSRVPATCH" $BFSRVPATCH_URIS
 
 # Get EoD mod
 #
-EODMOD='eod_classic_220_server.zip'
-[ $NOEOD -eq 0 ] && gotcha "${EODMOD}" "http://www.lottimax.de/eodmod/releases/${EODMOD}"
+[ $NOEOD -eq 0 ] && gotcha "${EODMOD}" $EODMOD_URIS
 
 # Get Desert Combat mod
 #
-DCMOD='Desert_Combat_0.7_Full_Dedicated_Server_Linux.run'
-
 if [ $NODC -eq 0 ]; then
-	gotcha "$DCMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCMOD"
+	gotcha "$DCMOD" $DCMOD_URIS
 #
 #       Get Desert Combat DC_Final mini-mod
 #
-	DCFINAL='Desert_Combat_Final_Patch_Dedicated_Server_Linux.run'
-	[ $NODCF -eq 0 ] && gotcha "$DCFINAL" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Desert_Combat/Servidor_Dedicado/&file=$DCFINAL"
+	[ $NODCF -eq 0 ] && gotcha "$DCFINAL" $DCFINAL_URIS
 
 # Get Forgotten Hope mod
 #
-FHMODUC='Forgotten_Hope_0.7_Dedicated_Server_Windows_and_Linux.zip'
-FMMOD='forgotten_hope_v0.7_dedicated_server.zip'
-[ $NOFH -eq 0 ] &&  gotcha "$FHMOD" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Forgotten_Hope/Servidor_Dedicado/&file=$FHMODUC"
-# "http://www.warumdarum.de//index.php?option=com_remository&Itemid=28&func=download&id=27&chk=451183137aa0bd47b5307db7c18f31d6"
-# "http://www.filefront.com/thankyou.php?f=4292687"
+[ $NOFH -eq 0 ] &&  gotcha "$FHMOD" $FHMOD_URIS
 
 # Get Battleggroup42 mod
 #
-BGMODUC='BattleGroup42_1.6_Full_Dedicated_Server_Windows.rar'
-BGMOD='BG42_Full_Server_1_6.rar'
-
 if [ $NOBG -eq 0 ]; then
-	if gotcha "${BGMOD}" "http://www.battlefielddownloads.com/index.php?dir=Battlefield_1942/Mods/Battlegroup42/Servidor_Dedicado/&file=${BGMODUC}"; then
-# "http://www.battlegroup42.de/${BGMOD}"
-# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=44&noJpC"
+	if gotcha "${BGMOD}" $BGMOD_URIS; then
 		EAPACK='bf1942_match_mappack_v1.0.zip'
-                gotcha "$EAPACK" "${DEFAULT_URI}/${EAPACK}"
-# "http://www.fileplanet.com/dl.aspx?/planetbattlefield/${EAPACK}"
-# "http://battlefield2.filefront.com/file/BF1942_Match_Mappack_V10;37864"
-# "http://www.battlegroup42.de/modules.php?name=Downloads&op=getit&lid=3&noJpC"
-# "http://games.on.net/file/1265/BF1942_Tournament_Map_Pack"
+                gotcha "$EAPACK" $EAPACK_URIS
 	fi
 fi
 	
 
 # Get BFServerManager remote daemon
 #
-BFSM='BFServerManager201.tgz'
-gotcha "${BFSM}" "http://www.bf-games.net/downloadnow/204/19346"
+gotcha "${BFSM}" $BFSM_URIS
 
 # Install BF1942 Linux dedicated server
 #
@@ -516,6 +548,7 @@ if [ $NOBG -eq 0 ]; then
 		if [ $RC -ne 0 ]; then
 			echo_ok $RC)
 		else
+			link_mixedcase "${BFDIR}/bf1942/mods" BG42
 #
 #			Install EA Community match mappack
 #
@@ -523,6 +556,8 @@ if [ $NOBG -eq 0 ]; then
 				unzip "${BGMOD}" "$BFDIR/bf1942" >/dev/null 2>&1
 				if [ $RC -ne 0 ]; then
 					echo_ok $RC)
+				else
+					[ -d "${BFDIR}/bf1942/mods/bf1942/Archives" ] && (mv "${BFDIR}/bf1942/mods/bf1942/Archives" "${BFDIR}/bf1942/mods/bf1942/archives"; link_mixedcase "${BFDIR}/bf1942/mods/bf1942" Archives)
 				fi
 			fi
 		fi
@@ -540,8 +575,8 @@ echo_ok $?
 #
 [ -r "$BFINJ" ] || echo "$0: $BFINJ not found" || exit -1
 echo -ne "\nCorrecting permissions..."
-sh ./injustools_bf1942_perms.sh "$BFDIR"
-sh ./injustools_bfsmd_perms.sh "$BFDIR/bfsmd"
+sh ./injustools_bf1942_perms.sh "$BFDIR"		# BF1942
+sh ./injustools_bfsmd_perms.sh "$BFDIR/bfsmd"		# BFSM
 #   sh ./injustools_bf1942_jail.sh "$BFDIR"
 echo_ok $?
 
@@ -559,4 +594,6 @@ done
 echo_ok $RC
 
 [ $RC -eq 0 ] && chkconfig --add bfsmd
+
+return $RC
 
