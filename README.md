@@ -3,7 +3,7 @@ Find tools to help administer game servers, hosting blogs and even stuff for you
 
 *THIS PROJECT IS NOW BEING HOSTED AT [Sourceforge.net](http://injustools.sourceforge.net)*
 
-See the [Wiki Pages](tree/wiki).
+See the [Project Home](ProjectHome.md) article.
 
 This is maintained by [Injustos Battlefield Clan](http://www.injustos.net)
 
