@@ -1,7 +1,7 @@
 # INJusTools
 Find tools to help administer game servers, hosting blogs and even stuff for your desktop, to ease the weary lives of gamers.
 
-*THIS PROJECT IS NOW BEING HOSTED AT [Sourceforge.net](http://injustools.sourceforge.net)*
+**THIS PROJECT IS NOW BEING HOSTED AT [Sourceforge.net](http://injustools.sourceforge.net)**
 
 See the [Wiki Pages](../../tree/wiki).
 
